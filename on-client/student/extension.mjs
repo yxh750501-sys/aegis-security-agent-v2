@@ -90,7 +90,63 @@ export function createStudentView() {
       }, true);
       return root;
     },
-    renderDecision() { return '학생 구현 대기: 서버의 판정과 이유를 연결하세요.'; },
+    renderDecision({ status, mode, data, error, appId }) {
+      const root = document.createElement('section');
+      const addText = (tag, text) => {
+        const element = document.createElement(tag);
+        element.textContent = text;
+        root.append(element);
+      };
+      const supplied = (text) => typeof text === 'string' && text.length > 0 ? text : '확인 불가';
+      const modes = {
+        connected: '실제 연결 모드',
+        demo: '예제 자료',
+        disconnected: '연결 없음',
+        unknown: '확인 불가',
+      };
+      addText('p', `연결 모드: ${Object.hasOwn(modes, mode) ? modes[mode] : '확인 불가'}`);
+
+      if (status === 'idle') {
+        addText('p', '앱을 골라 접속을 요청하세요.');
+      } else if (status === 'loading') {
+        addText('p', `대상 앱 ID: ${supplied(appId)}`);
+        addText('p', '판정 확인 중');
+      } else if (status === 'error') {
+        addText('p', `대상 앱 ID: ${supplied(appId)}`);
+        addText('p', `접근 요청 실패: ${supplied(error?.message)}`);
+        addText('p', '요청 실패는 정책상 접근 거부 판정이 아닙니다.');
+      } else if (status === 'ok') {
+        const requestedId = typeof appId === 'string' && appId.length > 0 ? appId : null;
+        const returnedId = typeof data?.appId === 'string' && data.appId.length > 0 ? data.appId : null;
+        addText('p', `대상 앱 ID: ${supplied(returnedId)}`);
+        if (!requestedId || !returnedId || requestedId !== returnedId) {
+          addText('p', '판정 확인 불가 (unknown): 요청 앱과 응답 앱을 일치시킬 수 없습니다.');
+        } else {
+          switch (data.decision) {
+            case 'allow':
+              addText('p', '접근 허용 (allow)');
+              addText('p', '서버 정책상 허용 판정입니다. 실제 업무 앱 접속 완료를 뜻하지 않습니다.');
+              break;
+            case 'deny':
+              addText('p', '접근 거부 (deny)');
+              break;
+            case 'challenge':
+              addText('p', '추가 인증 또는 확인 필요 (challenge)');
+              addText('p', '추가 확인이 필요합니다. AEGIS가 인증 절차를 대신 수행하지는 않습니다.');
+              break;
+            case 'unknown':
+            default:
+              addText('p', '판정 확인 불가 (unknown): 접근 허용 여부를 확인할 수 없습니다.');
+              break;
+          }
+          addText('p', `판정 이유: ${supplied(data.reason)}`);
+          addText('p', `판정 시각: ${supplied(data.checkedAt)}`);
+        }
+      } else {
+        addText('p', '접근 요청 상태 확인 불가');
+      }
+      return root;
+    },
     renderEvents() { return '학생 구현 대기: 본인 접속·XDR 기록을 연결하세요.'; },
     renderStatus() { return '학생 구현 대기: 기기·세션·알림과 연결 점검 상태를 구분하세요.'; },
     renderVulnerabilities() { return '학생 구현 대기: 정확한 설치 버전·OSV 출처·조회 시각·부분 결과·조회 실패를 구분하세요.'; },
