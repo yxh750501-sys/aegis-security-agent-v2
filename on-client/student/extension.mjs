@@ -370,8 +370,99 @@ export function createStudentView() {
       return root;
     },
     renderVulnerabilities() { return '학생 구현 대기: 정확한 설치 버전·OSV 출처·조회 시각·부분 결과·조회 실패를 구분하세요.'; },
-    renderAiConnection() { return '학생 구현 대기: 모델 응답 점검과 실제 사건 설명을 구분하고 AI 오류·취소·수동 복구를 안내하세요.'; },
-    renderExplanation() { return '학생 구현 대기: 선택한 사건의 근거·규칙·현재 상태와 AI 설명을 연결하세요. 제안은 자동 실행하지 않습니다.'; },
+    renderAiConnection({ status, mode, data, error, checkedAt }) {
+      const root = document.createElement('section');
+      const addText = (tag, value) => {
+        const element = document.createElement(tag);
+        element.textContent = value;
+        root.append(element);
+      };
+      const shown = (value) => typeof value === 'string' && value.length > 0 ? value : '확인 불가';
+      const modes = { connected: '연결됨', demo: '예제 응답', disconnected: '연결 없음', unknown: '확인 불가' };
+      addText('p', `연결 모드: ${Object.hasOwn(modes, mode) ? modes[mode] : '확인 불가'}`);
+      if (status === 'idle') {
+        addText('p', 'AI 연결 점검 전입니다.');
+      } else if (status === 'loading') {
+        addText('p', 'AI 연결 점검 중입니다.');
+      } else if (status === 'ok') {
+        if (data?.transportChecked === true && (data.audienceAuthorization === 'test' || data.audienceAuthorization === 'verified')
+          && Number.isInteger(data.modelCount) && data.modelCount >= 0) {
+          addText('p', data.audienceAuthorization === 'test'
+            ? '시험 연결 점검(test): 실제 앱 권한 확인 결과가 아닙니다.'
+            : '앱 권한 확인 후 점검(verified): 점검 시각 기준의 결과입니다.');
+          addText('p', `응답 모델 수: ${data.modelCount}`);
+          addText('p', `점검 시각: ${shown(checkedAt)}`);
+          addText('p', '연결만 점검했습니다. 사건 설명은 아직 실행하지 않았습니다. 사건 설명은 보안 기록에서 따로 요청해 확인하세요.');
+        } else {
+          addText('p', 'AI 연결 점검 결과를 확인할 수 없습니다. 사건 설명도 확인되지 않았습니다.');
+        }
+      } else if (status === 'error') {
+        const guidance = {
+          ON_AI_PROVISIONING_PENDING: '계정 연결과 앱 권한이 준비 중이거나 확인되지 않았습니다. 담당자에게 확인을 요청하세요.',
+          ON_AI_TRANSPORT_PENDING: 'AI 연결이 준비 중입니다. 담당자에게 계정 연결과 앱 권한을 확인 요청하세요.',
+          ON_AI_AUTHORIZATION_CHANGED: '점검 도중 앱 권한이 바뀌었습니다. 담당자에게 현재 권한을 확인 요청하세요.',
+          SUBJECT_SCOPE_UNVERIFIED: '현재 계정 연결을 확인할 수 없습니다. 담당자에게 확인을 요청하세요.',
+          WB_CLCO_AUTH_REQUIRED: 'AI 인증에 실패했습니다. 계정 연결을 다시 확인하고 담당자에게 문의하세요.',
+          WB_CLCO_INVALID_TOKEN: 'AI 인증 설정을 확인할 수 없습니다. 담당자에게 문의하세요.',
+          WB_CLCO_ACCESS_BLOCKED: 'AI 접근이 제한됐습니다. 계정 연결을 확인하고 담당자에게 문의하세요.',
+          WB_CLCO_COHORT_BUDGET_EXHAUSTED: '반의 AI 사용량이 소진됐습니다. 담당자에게 문의하세요.',
+          WB_CLCO_LIMIT_REACHED: 'AI 이용 한도에 도달했습니다. 담당자에게 문의하세요.',
+          WB_CLCO_SESSION_CLOSED: '현재 AI 이용 시간이 아닙니다. 이용 시간을 확인하세요.',
+          WB_CLCO_RATE_LIMITED: 'AI 요청이 제한됐습니다. 잠시 뒤 버튼을 눌러 직접 다시 점검하세요.',
+          WB_CLCO_TIMEOUT: 'AI 요청 시간이 초과됐습니다. 잠시 뒤 직접 다시 점검하세요.',
+          REQUEST_TIMEOUT: 'AI 요청 시간이 초과됐습니다. 잠시 뒤 직접 다시 점검하세요.',
+          ENGINE_TIMEOUT: '연결 확인 시간이 초과됐습니다. 잠시 뒤 직접 다시 점검하세요.',
+          TIMEOUT: 'AI 요청 시간이 초과됐습니다. 잠시 뒤 직접 다시 점검하세요.',
+          WB_CLCO_NETWORK_ERROR: 'AI 네트워크 연결을 확인할 수 없습니다. 잠시 뒤 직접 다시 점검하세요.',
+          WB_CLCO_SERVER_UNAVAILABLE: 'AI 서버가 응답하지 않습니다. 잠시 뒤 직접 다시 점검하세요.',
+          WB_CLCO_CANCELLED: '점검이 취소됐습니다. 이전 결과는 현재 결과가 아닙니다.',
+          REQUEST_CANCELLED: '점검이 취소됐습니다. 이전 결과는 현재 결과가 아닙니다.',
+          CANCELLED: '점검이 취소됐습니다. 이전 결과는 현재 결과가 아닙니다.',
+          MODEL_NOT_CONFIGURED: '사용할 AI 모델이 설정되지 않았습니다. 담당자에게 모델 허용 설정을 확인 요청하세요.',
+          ON_AI_MODEL_LIST_EMPTY: '현재 쓸 수 있는 AI 모델이 없습니다. 담당자에게 모델 허용 설정을 확인 요청하세요.',
+        };
+        const code = typeof error?.code === 'string' && /^[A-Z][A-Z0-9_]{0,63}$/.test(error.code) ? error.code : 'AI_REQUEST_UNVERIFIED';
+        const message = typeof error?.message === 'string' && error.message.length > 0 && error.message.length <= 500
+          ? error.message : 'AI 연결 또는 응답을 확인할 수 없습니다.';
+        addText('p', `AI 연결 점검 실패 · 코드: ${code} · 안내: ${message}`);
+        addText('p', Object.hasOwn(guidance, code) ? guidance[code] : '원인을 확인할 수 없습니다. 담당자에게 계정 연결과 앱 권한을 확인 요청하세요.');
+        addText('p', '다시 점검하려면 현재 API 연결 점검 버튼을 직접 누르세요. 자동으로 다시 점검하지 않습니다.');
+      } else {
+        addText('p', 'AI 연결 점검 상태를 확인할 수 없습니다.');
+      }
+      return root;
+    },
+    renderExplanation({ event, explanation, checkedAt }) {
+      const root = document.createElement('section');
+      const addText = (tag, value) => {
+        const element = document.createElement(tag);
+        element.textContent = value;
+        root.append(element);
+      };
+      if (explanation?.status === 'ok' && typeof event?.id === 'string' && event.id.length > 0
+        && typeof explanation.data?.summary === 'string' && explanation.data.summary.length > 0) {
+        root.setAttribute('data-student-explanation-event', event.id);
+        addText('h3', 'AI 사건 설명 (참고용)');
+        addText('p', `사건 ID: ${event.id}`);
+        addText('p', `설명 요약: ${explanation.data.summary}`);
+        if (typeof checkedAt === 'string' && checkedAt.length > 0) addText('p', `확인 시각: ${checkedAt}`);
+        if (explanation.mode === 'demo') addText('p', '예제 자료(demo)이며 실제 사건 설명 결과가 아닙니다.');
+      } else if (explanation?.status === 'error') {
+        const code = typeof explanation.error?.code === 'string' && /^[A-Z][A-Z0-9_]{0,63}$/.test(explanation.error.code)
+          ? explanation.error.code : 'AI_REQUEST_UNVERIFIED';
+        const message = typeof explanation.error?.message === 'string' && explanation.error.message.length > 0
+          && explanation.error.message.length <= 500 ? explanation.error.message : 'AI 설명 결과를 확인할 수 없습니다.';
+        addText('p', `AI 사건 설명 실패 · 코드: ${code} · 안내: ${message}`);
+        addText('p', '기존 보안 기록은 그대로 유지됩니다.');
+      } else if (explanation?.status === 'loading') {
+        addText('p', 'AI 사건 설명을 요청하는 중입니다.');
+      } else if (explanation?.status === 'ok') {
+        addText('p', 'AI 사건 설명의 사건 ID 또는 요약을 확인할 수 없습니다. 기존 보안 기록은 그대로 유지됩니다.');
+      } else {
+        addText('p', 'AI 사건 설명 전입니다. 보안 기록에서 별도로 요청할 수 있습니다.');
+      }
+      return root;
+    },
     renderAction() { return '학생 구현 대기: 현재 사건·조치·실제 대상·사람 확인·ACK와 원천 효과·unknown을 구분하세요.'; },
   };
 }
