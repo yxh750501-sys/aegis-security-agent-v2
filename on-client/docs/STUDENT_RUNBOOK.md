@@ -102,6 +102,23 @@ flowchart LR
 
 `npm run check`는 `student/extension.mjs`의 문법 검사만 합니다. HTTP 200은 앱 서버 응답 확인일 뿐, 위의 기다림(UNV)을 통과로 바꾸지 않습니다. ALEPH 공식 단계 판정은 제출 커밋의 원문을 별도로 검토합니다.
 
+## 최종 과제 3일차: 연결과 Windows 기록 재현
+
+Windows PC의 실제 테스트용 복제본이 `C:\Users\User\Downloads\AEGIS-V2-day1`에 있다면, 변경 사항을 반영한 뒤 아래 순서로 실행합니다. 경로가 다르면 본인의 복제본 경로로 바꿉니다. 이미 실행 중인 앱 서버는 먼저 해당 창에서 `Ctrl+C`로 끄고 재시작해야 새 코드가 적용됩니다.
+
+```powershell
+git -C 'C:\Users\User\Downloads\AEGIS-V2-day1' pull --ff-only origin main
+npm.cmd --prefix 'C:\Users\User\Downloads\AEGIS-V2-day1\on-client' run check
+powershell -NoProfile -ExecutionPolicy Bypass -File 'C:\Users\User\Downloads\AEGIS-V2-day1\on-client\tools\start-alekov.ps1'
+```
+
+1. 브라우저에서 `http://127.0.0.1:5189/`를 열고 **보호 현황 → 연결과 Windows 기록**을 확인합니다.
+2. 활성 네트워크 인터페이스 주소, 방화벽 프로필, 최근 24시간 System·Application 경고·오류 건수 옆의 조회 시각을 확인합니다. 이 영역은 로컬 앱 서버가 읽은 **실제 조회값**만 표시하며 설명용 예시 수치를 넣지 않습니다.
+3. 상단 **다시 불러오기**를 누르고 조회·집계 시각이 갱신되는지 확인합니다. 읽지 못하는 항목은 `확인 불가`와 이유로 남아야 합니다. 관리자 권한 상승이나 보안 설정 변경을 시도하지 않습니다.
+4. 별도 **SDP 서버** 행을 확인합니다. 상단 `연결 없음`이라면 `SDP 미연결`이어야 합니다. PC 조회 성공은 SDP 연결 성공을 뜻하지 않습니다.
+
+System·Application 건수는 운영체제 경고·오류 기록의 개수이며 **침해나 공격 탐지 결과가 아닙니다.** 방화벽 조회는 프로필과 기본 정책을 읽기만 합니다. 이벤트 본문은 앱 서버 응답에 넣지 않습니다. 이 문서를 추가한 클라우드 Linux 환경에서는 Windows PowerShell·이벤트 로그를 실행할 수 없으므로, Windows PC의 실제 결과는 사용자가 위 화면에서 확인하기 전까지 미확인입니다.
+
 ## 21단계 제출 시 확인할 것
 
 학생 문서를 커밋한 **40자리 SHA**와 저장소 주소가 같은 커밋을 가리키는지 확인합니다. 현재 Workbench의 **포털 제출 준비**는 13~20단계용이므로 21단계는 과제 화면에서 저장소 주소와 커밋을 직접 입력합니다. 비공개 원문 묶음이 필요하면 과제 화면의 **비공개 저장소 원문 준비 방법**에 있는 도구를 프로젝트 밖에 풀고, Git 최상위에서 그 화면에 안내된 명령에 실제 도구 경로·출력 경로·커밋을 넣어 JSON을 생성합니다. JSON은 프로젝트 밖에 보관합니다. 원문 접수와 공식 판정 통과는 별개이며, 앱을 켜거나 이 문서를 쓴 것만으로 제출되지 않습니다.

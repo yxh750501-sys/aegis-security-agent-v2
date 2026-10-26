@@ -118,6 +118,8 @@ main:focus { outline: none; }
 .identity, .kv { display: grid; grid-template-columns: 90px 1fr; gap: 6px 12px; margin: 0; }
 .identity dt, .kv dt { color: var(--muted); }
 .identity dd, .kv dd { margin: 0; overflow-wrap: anywhere; }
+.local-security-kv { grid-template-columns: minmax(130px, 160px) minmax(0, 1fr); }
+@media (max-width: 540px) { .local-security-kv { grid-template-columns: 1fr; gap: 3px; } .local-security-kv dd { margin-bottom: 8px; } }
 
 .plain-list { list-style: none; margin: 0; padding: 0; }
 .plain-list li { display: flex; justify-content: space-between; gap: 12px; padding: 8px 0; border-bottom: 1px solid var(--border); }
