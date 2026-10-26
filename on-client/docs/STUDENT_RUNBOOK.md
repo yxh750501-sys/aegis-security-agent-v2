@@ -11,36 +11,43 @@
 | 항목 | 이 저장소에서 확인한 값 |
 |---|---|
 | Git 저장소 | `yxh750501-sys/aegis-security-agent-v2`; Git 최상위는 `on-client`의 부모 폴더 |
-| 이 검증 환경의 Git 최상위 | `/workspace/aegis-security-agent-v2` (Linux; Windows PowerShell 실행 결과가 아님) |
-| 사용자가 앞서 확인한 Windows 복제 위치 | `C:\Users\User\AppData\Local\ALEPH\Workbench\projects\AEGIS V2` (현재 PC에서 여전히 같은지는 직접 확인 필요) |
+| 이 검증 환경의 Git 최상위 | `/workspace/aegis-security-agent-v2` (Linux; 다른 사람의 Windows 경로가 아님) |
+| Windows 폴더 위치 | PC마다 다릅니다. **본인이 복제한 저장소의 최상위 폴더**를 탐색기에서 열어 확인합니다. 예전 Workbench 폴더가 최신 복제본이라고 가정하지 않습니다. |
 | 앱 폴더 | Git 최상위 아래 `on-client` |
-| 실제 확인한 도구 버전 | Node.js `v24.19.0`, npm `11.9.0` (이 Linux 환경) |
-| 프로젝트 요구 버전 | `package.json`의 Node.js `24.19.0`; 제공 시작 안내는 Node.js 22~24를 안내 |
+| 실제 확인한 도구 버전 | Linux 검증 환경 Node.js `v24.19.0`, npm `11.9.0`; 사용자 Windows 화면에서는 Node.js `v24.22.0` 실행을 확인함 |
+| Node.js 버전 | `package.json`은 수업 기준 `24.19.0`을 적고, 제공 시작 스크립트는 22~24를 허용합니다. `24.19.0`과 다르다는 **참고 메시지만** 나오면 실행 실패가 아닙니다. |
 | 의존성/실행 설정 | `package.json`에 외부 npm 의존성 없음; 추적된 `package-lock.json` 없음; `npm start`, `npm run demo`, `npm run check` 제공 |
 | 기본 브라우저 주소 | `http://127.0.0.1:5189/` (현재 PC의 로컬 서버) |
 
 Node.js와 npm, Windows에서는 PowerShell, 앱 화면 확인용 브라우저가 필요합니다. 별도 `npm install`이나 `npm ci` 절차는 이 저장소의 현재 설정에 없습니다. 회사 계정·SDP/XDR·CLCO 접근은 운영자가 준비한 연결과 권한이 있어야 합니다.
 
-## 실행, 종료, 재실행
+## 처음 실행하기: 폴더 확인부터
 
-1. 새 PowerShell 창을 열고 **실제 Git 최상위 폴더**로 이동합니다. 앞서 확인된 Windows 위치가 그대로라면 아래 첫 명령을 사용할 수 있습니다. 다른 위치에 복제했다면 그 경로로 바꿉니다.
-2. `git rev-parse --show-toplevel`로 저장소를 확인한 뒤 `on-client`로 들어갑니다. `node --version`으로 Node.js가 준비됐는지 확인합니다.
-3. 제공 실행 스크립트를 실행하고, 브라우저에서 표시된 로컬 주소를 엽니다.
+1. 파일 탐색기에서 **본인이 받은 AEGIS V2 Git 저장소의 최상위 폴더**를 엽니다. 그 폴더에는 `on-client` 폴더가 있어야 합니다. 아직 복제본이 없다면 기존 폴더를 옮기거나 지우지 말고, 새 위치의 **상위 폴더**에서 `git clone https://github.com/yxh750501-sys/aegis-security-agent-v2.git AEGIS-V2-new`를 실행합니다. 새로 생긴 `AEGIS-V2-new` 폴더를 엽니다. 탐색기의 주소 표시줄에 `powershell`을 입력해 그 위치에서 PowerShell을 엽니다. `Downloads\on-client`처럼 이름만 같은 다른 폴더에서는 시작하지 않습니다.
+2. 아래 명령을 **한 줄씩** 실행합니다. `git rev-parse`가 `not a git repository`라고 하면 아직 저장소 밖입니다. 탐색기에서 실제 복제본 폴더를 다시 열어 1번부터 진행합니다. `origin`이 다른 저장소를 가리키거나 `Test-Path`가 `False`이면 계속 실행하지 않습니다.
+3. `npm.cmd run check`가 오류 없이 끝나면 시작 스크립트를 실행합니다. `npm.cmd`는 PowerShell의 `npm.ps1` 실행 정책 오류를 피하며, PC의 실행 정책을 바꾸지 않습니다.
 
 ```powershell
-Set-Location -LiteralPath 'C:\Users\User\AppData\Local\ALEPH\Workbench\projects\AEGIS V2'
 git rev-parse --show-toplevel
+git remote get-url origin
+git status --short --branch
+git log -1 --oneline
+Test-Path -LiteralPath '.\on-client\src\server.mjs'
 Set-Location -LiteralPath '.\on-client'
 node --version
-npm run check
+npm.cmd run check
 powershell -NoProfile -ExecutionPolicy Bypass -File .\tools\start-alekov.ps1
 ```
 
-제공 [실행 스크립트](../tools/start-alekov.ps1)가 성공하면 `케셰브가 켜졌습니다. 브라우저에서 http://127.0.0.1:5189/ 을 여세요.`와 `서버가 응답한 것만 확인했습니다. AI 연결 상태는 화면에서 따로 확인해 주세요.`를 표시합니다. 브라우저에서 `http://127.0.0.1:5189/`를 열어 **보호 현황** 화면과 상단 **다시 불러오기** 버튼이 있는지 확인합니다. 이 두 메시지는 앱 서버 응답만 뜻하며 SDP/XDR 또는 AI 연결 성공을 뜻하지 않습니다.
+`git remote get-url origin`은 `https://github.com/yxh750501-sys/aegis-security-agent-v2.git`(끝의 `.git`은 없어도 됨)를 가리켜야 합니다. 자신에게 접근 권한이 있는 **본인 복제본**이라면 같은 저장소의 다른 합법적인 원격 URL도 가능합니다. `git status`에 미커밋 변경이 있거나 `git log`의 버전이 기대한 제출본과 다르면 작업을 덮어쓰지 말고 소유자에게 현재 복제본을 확인받습니다. `Test-Path`는 `True`여야 합니다. `node --version`은 22~24 범위여야 하며, `v24.22.0`처럼 수업 기준과 다른 24 버전은 참고 문구가 나올 수 있습니다.
 
-앱을 실행한 PowerShell 창에서 `Ctrl+C`로 종료합니다. 같은 `on-client` 폴더에서 위 스크립트 명령을 다시 실행하면 재시작합니다. 포트 5189를 다른 프로그램이 사용하면 해당 프로그램을 종료하지 말고 `powershell -NoProfile -ExecutionPolicy Bypass -File .\tools\start-alekov.ps1 -Port 5190`으로 켜고 `http://127.0.0.1:5190/`을 엽니다. 제공 스크립트를 사용할 수 없을 때 같은 폴더에서 `npm start`가 기본 미연결 서버를 실행합니다. `npm run demo`는 같은 로컬 주소에서 예제 자료를 보여 주는 별도 실행이며, 예제 결과를 실제 연결로 보지 않습니다.
+제공 [실행 스크립트](../tools/start-alekov.ps1)가 성공하면 `케셰브가 켜졌습니다. 브라우저에서 http://127.0.0.1:5189/ 을 여세요.`와 `서버가 응답한 것만 확인했습니다. AI 연결 상태는 화면에서 따로 확인해 주세요.`를 표시합니다. **이 창을 열어 둔 채** 브라우저에서 `http://127.0.0.1:5189/`를 열어 보호 현황·업무 앱·보안 기록의 세 메뉴를 확인합니다. HTTP 응답은 앱 서버가 켜졌다는 뜻이며 SDP/XDR·AI 연결 성공을 뜻하지 않습니다.
 
-**검증 범위:** 이 문서를 작성한 Linux 환경에서는 `npm run check`와 `npm start`를 실제 실행했고, 페이지 HTTP 200 및 기본 `/api/me`의 `ENGINE_NOT_CONNECTED` 응답을 확인했습니다. PowerShell 명령과 Windows 브라우저 동작은 제공 스크립트·문서·파일 이름과 대조했지만 이 환경에서 직접 실행하지 못했습니다. Windows에서 새 PowerShell 창으로 위 순서를 재현하는 일은 미확인입니다.
+앱을 실행한 PowerShell 창에서 `Ctrl+C`로 종료합니다. 같은 `on-client` 폴더에서 시작 스크립트를 다시 실행하면 재시작합니다. 브라우저에 `ERR_CONNECTION_REFUSED`가 나오면 서버 창이 열려 있고 성공 문구가 보였는지 먼저 확인합니다. 포트 5189를 다른 프로그램이 사용하면 그 프로그램을 종료하지 말고 `powershell -NoProfile -ExecutionPolicy Bypass -File .\tools\start-alekov.ps1 -Port 5190`으로 켜고 `http://127.0.0.1:5190/`을 엽니다. 제공 스크립트를 사용할 수 없을 때 같은 폴더에서 `npm.cmd start`가 기본 미연결 서버를 실행합니다.
+
+실제 PC의 CPU·메모리·디스크·Windows 기록은 **이 앱 서버가 실행 중인 PC에서 읽은 값**이며, 읽지 못한 항목은 `확인 불가`와 이유로 남깁니다. SDP 서버가 없으면 `SDP 미연결`로 따로 표시합니다. `npm.cmd run demo`는 기존 SDP/XDR용 **설명용 예제 자료**를 보여 주는 별도 실행입니다. 기본 실행을 끈 뒤에만 같은 포트에서 demo를 켜고, 예제 결과를 실제 연결이나 PC 측정값으로 보고하지 않습니다.
+
+**검증 범위:** 이 문서의 이전 Linux 검증에서는 `npm run check`와 `npm start`, 페이지 HTTP 200 및 기본 `/api/me`의 `ENGINE_NOT_CONNECTED`를 확인했습니다. 사용자 Windows 화면에서는 로컬 PC 값과 3·4일차 표시·재조회 동작을 확인했습니다. **다른 사람이 이 문서만 보고 처음부터 끝까지 실행하는 시험은 아직 완료됐다고 기록하지 않습니다.**
 
 ## 실제 코드와 데이터 흐름
 
@@ -86,6 +93,10 @@ flowchart LR
 | `설치 패키지 조회 실패(error)` | 취약점 조회 요청 실패. 이전 결과를 현재 결과로 보지 않음. | 오류 문구를 확인하고 제공 화면의 조회 버튼을 직접 다시 누릅니다. | `renderVulnerabilities` 코드 확인; 실제 OSV 조회 미확인 |
 | `아직 조회 안 함 (not_checked)`, `일부 조회 실패 (partial)` | 미조회는 취약점 없음이 아니며, 일부 조회는 전체 결과를 확정할 수 없음. | 조회 대상 설정과 각 패키지의 조회 상태를 확인합니다. 확인된 취약점 ID만 사용합니다. | 표시 코드 확인; 실제 OSV 조회 미확인 |
 | `결과 불명(unknown)` | 조치 효과나 실패를 확정할 수 없음. | 준비·ACK를 효과 확인으로 보지 말고 원천 결과만 다시 조회합니다. | `renderAction` 코드 확인; 실제 조치 미실행 |
+| `fatal: not a git repository` | 현재 PowerShell 위치가 Git 저장소 밖임. | 탐색기에서 `on-client`과 `.git`이 들어 있는 실제 AEGIS V2 저장소 최상위 폴더를 열고 다시 시작합니다. 기존 폴더를 삭제하거나 이동하지 않습니다. | 다른 사람이 실행한 PowerShell 화면에서 확인 |
+| `npm.ps1 ... 스크립트를 실행할 수 없으므로`, `UnauthorizedAccess` | PowerShell이 `npm.ps1` 실행을 차단함. 앱 검사나 Node 버전 실패가 아님. | 같은 앱 폴더에서 `npm.cmd run check`를 실행합니다. 전역 실행 정책을 바꾸지 않습니다. | 다른 사람이 실행한 PowerShell 화면에서 확인 |
+| `참고: 지금 Node.js 는 v24.22.0` | 수업 기준 `24.19.0`과 다르다는 참고 메시지. 시작 스크립트는 Node 22~24를 허용함. | 이어지는 성공 또는 오류 줄을 확인합니다. 참고 메시지만으로 설치를 바꾸지 않습니다. | 스크립트 코드와 사용자 Windows 출력 확인 |
+| 브라우저 `ERR_CONNECTION_REFUSED` | 지정한 로컬 포트에 앱 서버가 응답하지 않음. | 서버 PowerShell 창에서 `케셰브가 켜졌습니다`와 실제 포트를 확인하고 창을 열린 채 유지합니다. 실행이 끝났다면 같은 앱 폴더에서 다시 켭니다. | 사용자 Windows 화면에서 재현·재시작 확인 |
 | `Node.js 가 없습니다`, `…초 안에 뜨지 않았습니다` | 제공 실행 스크립트가 서버 시작을 완료하지 못함. | Node.js 버전과 앱 폴더 위치를 확인하고, 계속되면 오류 메시지를 담당자에게 전달합니다. | 스크립트 코드 확인; Windows 실행 미확인 |
 | `포트 5189 를 다른 프로그램이 쓰고 있습니다` | 로컬 주소 충돌. | 위 `-Port 5190` 명령으로 실행하고 브라우저 포트도 바꿉니다. | 스크립트 코드 확인; Windows 충돌 재현 미확인 |
 
@@ -98,18 +109,19 @@ flowchart LR
 | 코드 확인 | 메뉴와 API 연결, 학생 함수 8개, PowerShell 실행 스크립트·오류 문구를 실제 파일에서 대조함. 이는 실행 성공 증거가 아님. |
 | 직접 실행 확인 | Linux에서 Node.js `v24.19.0`, npm `11.9.0`, `npm run check` 통과, `npm start` 시작, `http://127.0.0.1:5189/` HTTP 200, 기본 `/api/me`의 `ENGINE_NOT_CONNECTED` 확인. |
 | 앞 단계의 별도 검증 | 이전 단계에서 모의 DOM·Chromium 예제 화면을 점검했음. 이번 문서가 실제 회사 연결을 재검증한 것은 아님. |
-| 기다림(UNV) | 새 Windows PowerShell 창에서 본 문서만으로 재실행, 현재 PC의 실제 경로·버튼 대조, 운영 계정 인증, 실제 SDP/XDR 자료·접근 판정, CLCO 모델 호출·사건 설명, 조치 집행·효과, 실제 OSV 응답·설치 패키지 대조. |
+| 기다림(UNV) | 다른 사람의 PC에서 이 문서만 보고 끝까지 재실행, 운영 계정 인증, 실제 SDP/XDR 자료·접근 판정, CLCO 모델 호출·사건 설명, 조치 집행·효과, 실제 OSV 응답·설치 패키지 대조. |
 
 `npm run check`는 `student/extension.mjs`의 문법 검사만 합니다. HTTP 200은 앱 서버 응답 확인일 뿐, 위의 기다림(UNV)을 통과로 바꾸지 않습니다. ALEPH 공식 단계 판정은 제출 커밋의 원문을 별도로 검토합니다.
 
 ## 최종 과제 3일차: 연결과 Windows 기록 재현
 
-Windows PC의 실제 테스트용 복제본이 `C:\Users\User\Downloads\AEGIS-V2-day1`에 있다면, 변경 사항을 반영한 뒤 아래 순서로 실행합니다. 경로가 다르면 본인의 복제본 경로로 바꿉니다. 이미 실행 중인 앱 서버는 먼저 해당 창에서 `Ctrl+C`로 끄고 재시작해야 새 코드가 적용됩니다.
+아래는 3일차 기능을 다시 확인할 때의 절차입니다. 먼저 위 **처음 실행하기**의 저장소·현재 커밋 확인을 마칩니다. 이미 실행 중인 앱 서버는 해당 창에서 `Ctrl+C`로 끄고 재시작해야 새 코드가 적용됩니다. 명령은 본인의 Git 최상위 폴더에서 실행합니다. 미커밋 작업이 있거나 `main`이 아니라면 작업을 보존하고 소유자에게 확인받은 뒤 업데이트합니다.
 
 ```powershell
-git -C 'C:\Users\User\Downloads\AEGIS-V2-day1' pull --ff-only origin main
-npm.cmd --prefix 'C:\Users\User\Downloads\AEGIS-V2-day1\on-client' run check
-powershell -NoProfile -ExecutionPolicy Bypass -File 'C:\Users\User\Downloads\AEGIS-V2-day1\on-client\tools\start-alekov.ps1'
+git pull --ff-only origin main
+Set-Location -LiteralPath '.\on-client'
+npm.cmd run check
+powershell -NoProfile -ExecutionPolicy Bypass -File .\tools\start-alekov.ps1
 ```
 
 1. 브라우저에서 `http://127.0.0.1:5189/`를 열고 **보호 현황 → 연결과 Windows 기록**을 확인합니다.
@@ -117,17 +129,18 @@ powershell -NoProfile -ExecutionPolicy Bypass -File 'C:\Users\User\Downloads\AEG
 3. 상단 **다시 불러오기**를 누르고 조회·집계 시각이 갱신되는지 확인합니다. 읽지 못하는 항목은 `확인 불가`와 이유로 남아야 합니다. 관리자 권한 상승이나 보안 설정 변경을 시도하지 않습니다.
 4. 별도 **SDP 서버** 행을 확인합니다. 상단 `연결 없음`이라면 `SDP 미연결`이어야 합니다. PC 조회 성공은 SDP 연결 성공을 뜻하지 않습니다.
 
-System·Application 건수는 운영체제 경고·오류 기록의 개수이며 **침해나 공격 탐지 결과가 아닙니다.** 방화벽 조회는 프로필과 기본 정책을 읽기만 합니다. 이벤트 본문은 앱 서버 응답에 넣지 않습니다. 이 문서를 추가한 클라우드 Linux 환경에서는 Windows PowerShell·이벤트 로그를 실행할 수 없으므로, Windows PC의 실제 결과는 사용자가 위 화면에서 확인하기 전까지 미확인입니다.
+System·Application 건수는 운영체제 경고·오류 기록의 개수이며 **침해나 공격 탐지 결과가 아닙니다.** 방화벽 조회는 프로필과 기본 정책을 읽기만 합니다. 이벤트 본문은 앱 서버 응답에 넣지 않습니다. 클라우드 Linux 환경에서는 Windows PowerShell·이벤트 로그를 실행할 수 없었습니다. 이후 사용자 Windows 화면에서 실제 PC 값과 기록 건수 표시를 확인했으며, 다른 사람의 PC에서 동일한 값을 얻는다고 주장하지 않습니다.
 
 ## 최종 과제 4일차: 학생 화면과 직접 다시 조회
 
-아래 명령은 **병합 뒤** Windows 테스트 복제본에서 실행합니다. 작업 중인 서버는 해당 창에서 `Ctrl+C`로 끄고 새 버전으로 다시 켭니다. 경로가 다르면 본인의 실제 복제 위치로 바꿉니다.
+아래 명령은 **병합 뒤** 본인의 Git 최상위 폴더에서 실행합니다. 먼저 위 **처음 실행하기**의 저장소·현재 커밋 확인을 마칩니다. 작업 중인 서버는 해당 창에서 `Ctrl+C`로 끄고 새 버전으로 다시 켭니다. 미커밋 작업이 있으면 보존하고 업데이트 전에 소유자에게 확인받습니다.
 
 ```powershell
-git -C 'C:\Users\User\Downloads\AEGIS-V2-day1' switch main
-git -C 'C:\Users\User\Downloads\AEGIS-V2-day1' pull --ff-only origin main
-npm.cmd --prefix 'C:\Users\User\Downloads\AEGIS-V2-day1\on-client' run check
-powershell -NoProfile -ExecutionPolicy Bypass -File 'C:\Users\User\Downloads\AEGIS-V2-day1\on-client\tools\start-alekov.ps1'
+git switch main
+git pull --ff-only origin main
+Set-Location -LiteralPath '.\on-client'
+npm.cmd run check
+powershell -NoProfile -ExecutionPolicy Bypass -File .\tools\start-alekov.ps1
 ```
 
 1. `http://127.0.0.1:5189/`의 보호 현황에서 학생 상태·알림 표시의 **핵심 기능 3가지**와 **내 PC와 연결·기록**을 확인합니다. `Tab`으로 「다시 조회」에 이동하고 `Enter` 또는 `Space`로 누릅니다.
