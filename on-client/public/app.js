@@ -49,6 +49,7 @@ const state = {
   view: 'protection',
   checkedAt: null,
   pcStatus: { status: 'loading' },
+  localSecurity: { status: 'loading' },
   me: { status: 'loading' },
   apps: { status: 'loading' },
   events: { status: 'loading' },
@@ -264,6 +265,69 @@ async function loadPcStatus(gen, signal) {
   renderPcStatus();
 }
 
+function validLocalSecurity(data) {
+  if (!isRecord(data)) return false;
+  const validUnavailable = item => isRecord(item) && item.status === 'unavailable' &&
+    typeof item.reason === 'string' && item.reason.length <= 200;
+  const network = data.network;
+  const firewall = data.firewall;
+  const events = data.events;
+  const validCount = item => validUnavailable(item) || (isRecord(item) && item.status === 'ok' &&
+    Number.isSafeInteger(item.warnings) && item.warnings >= 0 &&
+    Number.isSafeInteger(item.errors) && item.errors >= 0);
+  return data.source === 'local-app-server' && typeof data.platform === 'string' &&
+    (validUnavailable(network) || (isRecord(network) && network.status === 'ok' &&
+      Array.isArray(network.interfaces) && network.interfaces.length <= 16 &&
+      network.interfaces.every(row => isRecord(row) && ['IPv4', 'IPv6'].includes(row.family) &&
+        ['name', 'address', 'cidr'].every(key => typeof row[key] === 'string' && row[key].length <= 200)))) &&
+    (validUnavailable(firewall) || (isRecord(firewall) && firewall.status === 'ok' &&
+      Array.isArray(firewall.profiles) && firewall.profiles.length <= 10 &&
+      firewall.profiles.every(row => isRecord(row) && typeof row.name === 'string' &&
+        typeof row.enabled === 'string' && typeof row.inbound === 'string' && typeof row.outbound === 'string'))) &&
+    isRecord(events) && events.status === 'ok' && validCount(events.System) && validCount(events.Application);
+}
+
+function renderLocalSecurity() {
+  const slot = $('local-security-status');
+  const mode = currentMode();
+  const sdp = mode === 'disconnected' ? 'SDP 미연결' : mode === 'connected'
+    ? 'SDP 연결됨' : mode === 'demo' ? '예제 모드(demo) · SDP 실연결 아님' : 'SDP 연결 확인 불가';
+  const pairs = [el('dt', {text: 'SDP 서버'}), el('dd', {text: sdp})];
+  const row = (label, value) => { pairs.push(el('dt', {text: label}), el('dd', {text: value})); };
+  const resource = state.localSecurity;
+  if (resource.status === 'loading') row('PC 조회', '조회 중입니다.');
+  else if (resource.status === 'error') row('PC 조회', `확인 불가: ${resource.message}`);
+  else {
+    const data = resource.data;
+    const net = data.network;
+    row('네트워크 구성', net.status === 'ok'
+      ? `${net.interfaces.map(item => `${item.name}: ${item.family} ${item.address} (${item.cidr})`).join(' · ')}${net.limited ? ' · 추가 주소 생략' : ''} · 조회 시각 ${formatTime(net.checkedAt)}`
+      : `확인 불가: ${net.reason}`);
+    const fw = data.firewall;
+    row('방화벽 설정', fw.status === 'ok'
+      ? `${fw.profiles.map(item => `${item.name}: ${item.enabled === 'True' ? '켜짐' : item.enabled === 'False' ? '꺼짐' : `확인 불가(${item.enabled})`} · 기본 인바운드 ${item.inbound} · 기본 아웃바운드 ${item.outbound}`).join(' / ')} · 조회 시각 ${formatTime(fw.checkedAt)}`
+      : `확인 불가: ${fw.reason}`);
+    for (const name of ['System', 'Application']) {
+      const item = data.events[name];
+      row(`${name} 기록`, item.status === 'ok'
+        ? `최근 24시간 경고 ${item.warnings}건 · 오류 ${item.errors}건 · 집계 시각 ${formatTime(data.events.checkedAt)}`
+        : `확인 불가: ${item.reason}`);
+    }
+  }
+  setChildren(slot, el('dl', {className: 'kv local-security-kv'}, pairs));
+}
+
+async function loadLocalSecurity(gen, signal) {
+  const result = await request('/api/local-security-status', {signal});
+  if (gen !== generation) return;
+  state.localSecurity = result.ok && validLocalSecurity(result.data)
+    ? {status: 'ok', data: result.data}
+    : {status: 'error', message: result.ok
+      ? '서버 응답 형식을 확인할 수 없습니다.'
+      : result.error?.message || '로컬 앱 서버에 연결할 수 없습니다.'};
+  renderLocalSecurity();
+}
+
 function stateLabel(kind, value) {
   return `${STATE_LABELS[kind][value]}(${value})`;
 }
@@ -439,6 +503,7 @@ function renderMode() {
   badge.dataset.mode = mode;
   badge.textContent = MODE_LABELS[mode];
   $('checked-at').textContent = state.checkedAt ? `확인 시각 ${formatTime(state.checkedAt)}` : '';
+  renderLocalSecurity();
   renderStudent('status');
 }
 
@@ -1361,6 +1426,8 @@ async function loadAll() {
   state.checkedAt = null;
   state.pcStatus = { status: 'loading' };
   renderPcStatus();
+  state.localSecurity = { status: 'loading' };
+  renderLocalSecurity();
   for (const key of Object.keys(PATHS)) {
     state[key] = { status: 'loading' };
     trackError(key, state[key]);
@@ -1370,7 +1437,7 @@ async function loadAll() {
 
   try {
     await Promise.all([...Object.keys(PATHS).map((key) => loadResource(key, gen, controller.signal)),
-      loadPcStatus(gen, controller.signal)]);
+      loadPcStatus(gen, controller.signal), loadLocalSecurity(gen, controller.signal)]);
   } finally {
     if (gen === generation) {
       refreshController = null;
