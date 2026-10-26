@@ -119,6 +119,23 @@ powershell -NoProfile -ExecutionPolicy Bypass -File 'C:\Users\User\Downloads\AEG
 
 System·Application 건수는 운영체제 경고·오류 기록의 개수이며 **침해나 공격 탐지 결과가 아닙니다.** 방화벽 조회는 프로필과 기본 정책을 읽기만 합니다. 이벤트 본문은 앱 서버 응답에 넣지 않습니다. 이 문서를 추가한 클라우드 Linux 환경에서는 Windows PowerShell·이벤트 로그를 실행할 수 없으므로, Windows PC의 실제 결과는 사용자가 위 화면에서 확인하기 전까지 미확인입니다.
 
+## 최종 과제 4일차: 학생 화면과 직접 다시 조회
+
+아래 명령은 **병합 뒤** Windows 테스트 복제본에서 실행합니다. 작업 중인 서버는 해당 창에서 `Ctrl+C`로 끄고 새 버전으로 다시 켭니다. 경로가 다르면 본인의 실제 복제 위치로 바꿉니다.
+
+```powershell
+git -C 'C:\Users\User\Downloads\AEGIS-V2-day1' switch main
+git -C 'C:\Users\User\Downloads\AEGIS-V2-day1' pull --ff-only origin main
+npm.cmd --prefix 'C:\Users\User\Downloads\AEGIS-V2-day1\on-client' run check
+powershell -NoProfile -ExecutionPolicy Bypass -File 'C:\Users\User\Downloads\AEGIS-V2-day1\on-client\tools\start-alekov.ps1'
+```
+
+1. `http://127.0.0.1:5189/`의 보호 현황에서 학생 상태·알림 표시의 **핵심 기능 3가지**와 **내 PC와 연결·기록**을 확인합니다. `Tab`으로 「다시 조회」에 이동하고 `Enter` 또는 `Space`로 누릅니다.
+2. 조회 중에는 버튼이 비활성화되고 `새로 읽는 중…`이 나타나는지, 완료 뒤 버튼으로 키보드 초점이 돌아오는지 확인합니다. PC·Windows 제공 카드의 시각도 새로 조회한 값으로 바뀌어야 합니다.
+3. 읽지 못한 항목은 학생 영역에서도 항목 이름, `확인 불가` 또는 조회 실패 이유, 다음 행동을 표시해야 합니다. 실제 수치를 예시 수치로 채우지 않습니다. SDP가 미연결이면 PC 조회 성공과 구분합니다.
+
+학생 영역의 PC·Windows 값은 로컬 앱 서버에서 실제로 조회한 경우에만 **실제 로컬 조회**로 표시합니다. `npm run demo`에서 제공되는 SDP 예제 자료는 `설명용 예제 자료`라고 별도로 표시합니다. 이 저장소에는 `student/appearance.json`을 읽는 코드와 설치 프로그램 생성 명령이 없으므로, 이 브라우저 확인만으로 별도 설치형 앱에 반영됐다고 판단하지 않습니다. 설치형 앱이 어느 학생 파일과 UI 버전을 포함하는지는 그 배포 구성에서 별도로 확인해야 합니다.
+
 ## 21단계 제출 시 확인할 것
 
 학생 문서를 커밋한 **40자리 SHA**와 저장소 주소가 같은 커밋을 가리키는지 확인합니다. 현재 Workbench의 **포털 제출 준비**는 13~20단계용이므로 21단계는 과제 화면에서 저장소 주소와 커밋을 직접 입력합니다. 비공개 원문 묶음이 필요하면 과제 화면의 **비공개 저장소 원문 준비 방법**에 있는 도구를 프로젝트 밖에 풀고, Git 최상위에서 그 화면에 안내된 명령에 실제 도구 경로·출력 경로·커밋을 넣어 JSON을 생성합니다. JSON은 프로젝트 밖에 보관합니다. 원문 접수와 공식 판정 통과는 별개이며, 앱을 켜거나 이 문서를 쓴 것만으로 제출되지 않습니다.

@@ -50,6 +50,7 @@ const state = {
   checkedAt: null,
   pcStatus: { status: 'loading' },
   localSecurity: { status: 'loading' },
+  refreshing: false,
   me: { status: 'loading' },
   apps: { status: 'loading' },
   events: { status: 'loading' },
@@ -78,6 +79,7 @@ let aiConnectionGeneration = 0;
 let explanationGeneration = 0;
 let studentView = null;
 let studentLoadFailed = false;
+let focusStudentRefreshAfterLoad = false;
 // Confirmation is private to this module: never sent to DOM, student hooks,
 // storage, URLs, diagnostics or logs. One current intent, no automatic retries.
 let actionGeneration = 0;
@@ -1312,7 +1314,10 @@ function studentData(kind) {
     if (state.events.status === 'ok') for (const event of state.events.data) {
       if (event.kind === 'xdr' || Object.values(event.state).includes('unknown')) notifications.push({ resource: 'events', code: event.kind, message: `${event.id}: ${event.summary}` });
     }
-    return structuredClone({ devices: snapshot(state.devices), sessions: snapshot(state.sessions), notifications, diagnostics: snapshot(state.diagnostics), mode: currentMode() });
+    return structuredClone({ me: snapshot(state.me), apps: snapshot(state.apps), events: snapshot(state.events),
+      devices: snapshot(state.devices), sessions: snapshot(state.sessions), notifications,
+      diagnostics: snapshot(state.diagnostics), pcStatus: state.pcStatus, localSecurity: state.localSecurity,
+      refreshing: state.refreshing, mode: currentMode() });
   }
   return snapshot(state.events);
 }
@@ -1342,7 +1347,14 @@ function renderStudent(kind) {
     return setChildren(target, stateBox('error', `학생 구현 ${fn} 실행 중 오류가 발생했습니다. 제공 UI는 계속 동작합니다.`));
   }
   // 학생 반환은 DOM 요소 또는 텍스트만 허용한다. 문자열은 HTML로 해석하지 않는다.
-  if (output instanceof Element) return setChildren(target, output);
+  if (output instanceof Element) {
+    setChildren(target, output);
+    if (kind === 'status' && focusStudentRefreshAfterLoad && !state.refreshing) {
+      if (state.view === 'protection') target.querySelector('[data-student-refresh]')?.focus();
+      focusStudentRefreshAfterLoad = false;
+    }
+    return;
+  }
   if (typeof output === 'string') return setChildren(target, el('p', { className: 'student-text', text: output }));
   if (output == null) return setChildren(target, stateBox('empty', STUDENT_PENDING));
   setChildren(target, stateBox('error', `학생 구현 ${fn}의 반환 형식이 DOM 요소 또는 텍스트가 아닙니다.`));
@@ -1358,6 +1370,10 @@ const studentApi = Object.freeze({
       return Promise.resolve(localFailure('NOT_ALLOWED', '학생 구현에서 허용되지 않은 주소입니다.', UNKNOWN_META));
     }
     return request(path);
+  },
+  refresh() {
+    focusStudentRefreshAfterLoad = document.activeElement?.hasAttribute('data-student-refresh') === true;
+    return loadAll();
   },
 });
 
@@ -1414,6 +1430,7 @@ function cancelInteractive() {
 
 async function loadAll() {
   const gen = ++generation;
+  state.refreshing = true;
   if (refreshController) refreshController.abort();
   const controller = new AbortController();
   refreshController = controller;
@@ -1443,6 +1460,8 @@ async function loadAll() {
       refreshController = null;
       refresh.disabled = false;
       refresh.textContent = '다시 불러오기';
+      state.refreshing = false;
+      renderStudent('status');
     }
   }
 }
