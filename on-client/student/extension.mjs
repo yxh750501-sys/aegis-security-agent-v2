@@ -277,6 +277,8 @@ export function createStudentView({ api } = {}) {
         return element;
       };
       const shown = (value) => typeof value === 'string' && value.length > 0 ? value : '확인 불가';
+      const shownTime = (value) => typeof value === 'string' && Number.isFinite(Date.parse(value))
+        ? new Date(value).toLocaleString('ko-KR') : shown(value);
       const labels = {
         device: { compliant: '보안 기준 충족', noncompliant: '보안 기준 미충족', unknown: '확인 불가' },
         session: { active: '활성', expired: '만료', revoked: '철회됨', unknown: '확인 불가' },
@@ -320,7 +322,7 @@ export function createStudentView({ api } = {}) {
       else if (pcStatus?.status === 'error') addText(local, 'p', `PC 상태: 조회 실패 · ${shown(pcStatus.message)} · 다시 조회를 누르세요.`);
       else if (pcStatus?.status === 'ok' && pc) {
         for (const [name, item] of [['CPU 사용률', pc.cpu], ['메모리 사용량', pc.memory], ['디스크 남은 공간', pc.disk]]) {
-          if (item?.status === 'ok') addText(local, 'p', `${name}: ${item.value} ${item.unit} · 채집 시각 ${shown(item.measuredAt)} · 실제 로컬 조회`);
+          if (item?.status === 'ok') addText(local, 'p', `${name}: ${item.value}${item.unit === '%' ? '' : ' '}${item.unit} · 채집 시각 ${shownTime(item.measuredAt)} · 실제 로컬 조회`);
           else addText(local, 'p', `${name}: 확인 불가 · ${shown(item?.reason)} · 권한과 장치 상태를 확인한 뒤 다시 조회하세요.`);
         }
       } else addText(local, 'p', 'PC 상태: 확인 불가 · 다시 조회로 상태를 확인하세요.');
