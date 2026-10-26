@@ -1,6 +1,6 @@
 // 이 파일은 학생이 같은 프로젝트에서 이어서 구현합니다.
 // 제공 UI를 받은 것만으로 단계 완료를 인정하지 않습니다.
-export function createStudentView() {
+export function createStudentView({ api } = {}) {
   return {
     renderIdentity({ me, devices, sessions }) {
       const root = document.createElement('section');
@@ -268,7 +268,7 @@ export function createStudentView() {
       renderRows();
       return root;
     },
-    renderStatus({ devices, sessions, notifications, diagnostics, mode }) {
+    renderStatus({ me, apps, events, devices, sessions, notifications, diagnostics, pcStatus, localSecurity, refreshing, mode }) {
       const root = document.createElement('section');
       const addText = (parent, tag, text) => {
         const element = document.createElement(tag);
@@ -288,7 +288,58 @@ export function createStudentView() {
         return `${timeout ? '시간 초과: ' : ''}${shown(error?.message)}`;
       };
       const modes = { connected: '연결됨', demo: '예제 자료', disconnected: '연결 없음', unknown: '확인 불가' };
+      const overview = document.createElement('section');
+      addText(overview, 'h3', '핵심 기능 3가지');
+      const summary = (title, resource, okText) => {
+        if (resource?.status === 'loading') addText(overview, 'p', `${title}: 새로 읽는 중…`);
+        else if (resource?.status === 'error') {
+          addText(overview, 'p', `${title}: 조회 실패 · ${shown(resource.error?.message)}`);
+          addText(overview, 'p', `${title}: 아래 다시 조회를 누르고, 계속 실패하면 연결 상태를 확인하세요.`);
+        } else if (resource?.status === 'ok') {
+          addText(overview, 'p', `${title}: ${resource.mode === 'demo' ? '설명용 예제 자료 · ' : ''}${okText(resource.data)}`);
+        } else addText(overview, 'p', `${title}: 확인 불가 · 다시 조회로 상태를 확인하세요.`);
+      };
+      summary('보호 현황', me, data => `현재 사용자 ${shown(data?.user?.label)}`);
+      summary('업무 앱', apps, data => Array.isArray(data) ? `${data.length}개 앱 표시` : '자료 확인 불가');
+      summary('보안 기록', events, data => Array.isArray(data) ? `${data.length}건 표시` : '자료 확인 불가');
+      root.append(overview);
       addText(root, 'p', `연결 모드: ${Object.hasOwn(modes, mode) ? modes[mode] : '확인 불가'}`);
+
+      const local = document.createElement('section');
+      addText(local, 'h3', '내 PC와 연결·기록 · 실제 로컬 조회');
+      const retry = addText(local, 'button', '다시 조회');
+      retry.type = 'button';
+      retry.setAttribute('data-student-refresh', '');
+      retry.disabled = refreshing === true || typeof api?.refresh !== 'function';
+      if (!retry.disabled) retry.addEventListener('click', () => { void api.refresh(); });
+      const progress = addText(local, 'p', refreshing === true ? '새로 읽는 중…' : '자동 재시도 없이 버튼을 누를 때 다시 조회합니다.');
+      progress.setAttribute('role', 'status');
+      if (typeof api?.refresh !== 'function') addText(local, 'p', '이 실행판의 학생 다시 조회 연결을 확인할 수 없습니다. 상단 다시 불러오기를 사용하세요.');
+      const pc = pcStatus?.data;
+      if (pcStatus?.status === 'loading') addText(local, 'p', 'PC 상태: 새로 읽는 중…');
+      else if (pcStatus?.status === 'error') addText(local, 'p', `PC 상태: 조회 실패 · ${shown(pcStatus.message)} · 다시 조회를 누르세요.`);
+      else if (pcStatus?.status === 'ok' && pc) {
+        for (const [name, item] of [['CPU 사용률', pc.cpu], ['메모리 사용량', pc.memory], ['디스크 남은 공간', pc.disk]]) {
+          if (item?.status === 'ok') addText(local, 'p', `${name}: ${item.value} ${item.unit} · 채집 시각 ${shown(item.measuredAt)} · 실제 로컬 조회`);
+          else addText(local, 'p', `${name}: 확인 불가 · ${shown(item?.reason)} · 권한과 장치 상태를 확인한 뒤 다시 조회하세요.`);
+        }
+      } else addText(local, 'p', 'PC 상태: 확인 불가 · 다시 조회로 상태를 확인하세요.');
+      if (mode === 'disconnected') addText(local, 'p', 'SDP 미연결 · PC 조회 성공과 별개입니다. 연결 설정을 확인하세요.');
+      else if (mode === 'demo') addText(local, 'p', 'SDP는 예제 모드입니다. 실제 연결 결과가 아닙니다.');
+      else if (mode !== 'connected') addText(local, 'p', 'SDP 연결 확인 불가 · 연결 상태를 확인하세요.');
+      if (localSecurity?.status === 'loading') addText(local, 'p', '네트워크·방화벽·Windows 기록: 새로 읽는 중…');
+      else if (localSecurity?.status === 'error') addText(local, 'p', `네트워크·방화벽·Windows 기록: 조회 실패 · ${shown(localSecurity.message)} · 다시 조회를 누르세요.`);
+      else if (localSecurity?.status === 'ok' && localSecurity.data) {
+        const data = localSecurity.data;
+        const itemLine = (name, item, detail) => addText(local, 'p', item?.status === 'ok'
+          ? `${name}: ${detail(item)} · 실제 로컬 조회`
+          : `${name}: 확인 불가 · ${shown(item?.reason)} · 권한이나 서비스 상태를 확인한 뒤 다시 조회하세요.`);
+        itemLine('네트워크 구성', data.network, item => `인터페이스 주소 ${item.interfaces?.length ?? '확인 불가'}개`);
+        itemLine('방화벽 설정', data.firewall, item => `프로필 ${item.profiles?.length ?? '확인 불가'}개 확인`);
+        for (const name of ['System', 'Application']) itemLine(`${name} 기록`, data.events?.[name], item => `최근 24시간 경고 ${item.warnings}건 · 오류 ${item.errors}건`);
+        addText(local, 'p', 'Windows 경고·오류 건수는 침해나 공격 탐지 결과가 아닙니다.');
+      } else addText(local, 'p', '네트워크·방화벽·Windows 기록: 확인 불가 · 다시 조회로 상태를 확인하세요.');
+      root.append(local);
       const showList = (title, resource, kind) => {
         const section = document.createElement('section');
         addText(section, 'h3', title);
