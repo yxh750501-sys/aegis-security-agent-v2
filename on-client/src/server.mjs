@@ -16,6 +16,7 @@ import {prepareLearnerSupportRequest} from './ai/learner-support-contract.mjs';
 import {createVaultOnAiService} from './ai/vault-service.mjs';
 import {createConnectionManager} from './connection/manager.mjs';
 import {createProjectScanner} from './vulnerabilities/project-scan.mjs';
+import {readPcStatus} from './pc-status.mjs';
 import {buildLocalLearnerSupportGuide,isLearnerSupportProblemKind,readLocalLearnerSupportObservation} from './learner-support/service.mjs';
 import {nativeOwn,nativePublicError} from './connection/native-login.mjs';
 import {createNativeHostContext,captureNativeHostConfiguration,readNativeHostConfiguration,openNativeHostOperation,readNativeHostOperation,assertNativeHostOperation,createNativeOperationVault,closeNativeHostOperation} from './connection/native-context.mjs';
@@ -374,6 +375,9 @@ export function createOnServer(serverOptions={}) {
         const data=await readFile(resolve(assetsRoot,files.get(url.pathname)));
         const type=url.pathname.endsWith('.webp')?'image/webp':url.pathname.endsWith('.css')?'text/css':url.pathname.endsWith('.js')||url.pathname.endsWith('.mjs')?'text/javascript':'text/html';
         res.writeHead(200,{'content-type':type==='image/webp'?type:`${type}; charset=utf-8`,'cache-control':'no-store','content-security-policy':"default-src 'self'; script-src 'self'; style-src 'self'; connect-src 'self'; img-src 'self' data:; object-src 'none'; frame-ancestors 'none'; base-uri 'none'",'x-content-type-options':'nosniff'});res.end(data);return;
+      }
+      if(req.method==='GET'&&url.pathname==='/api/pc-status'){
+        send(200,{ok:true,data:await readPcStatus()});return;
       }
       if(req.method==='POST'&&connectionRoutes.has(url.pathname)){
         const kind=connectionRoutes.get(url.pathname),keys=kind==='start'?[]:['connectionId'];
