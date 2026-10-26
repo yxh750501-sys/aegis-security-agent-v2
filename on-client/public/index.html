@@ -46,6 +46,12 @@
       <section id="view-protection" class="view" role="tabpanel" aria-labelledby="tab-protection">
         <h1>보호 현황</h1>
 
+        <section class="card provided" aria-labelledby="pc-status-title">
+          <h2 id="pc-status-title">내 PC 상태</h2>
+          <p class="muted">이 앱 서버가 실행 중인 장치에서 직접 읽은 값입니다. 채집 시각과 단위를 함께 확인하세요.</p>
+          <div id="pc-status" aria-live="polite">PC 상태를 불러오는 중입니다.</div>
+        </section>
+
         <div class="grid-2">
           <section class="card provided" aria-labelledby="identity-title">
             <h2 id="identity-title">현재 로그인 <span class="tag">제공</span></h2>

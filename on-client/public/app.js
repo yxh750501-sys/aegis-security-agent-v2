@@ -48,6 +48,7 @@ const RESOURCE_LABELS = {
 const state = {
   view: 'protection',
   checkedAt: null,
+  pcStatus: { status: 'loading' },
   me: { status: 'loading' },
   apps: { status: 'loading' },
   events: { status: 'loading' },
@@ -213,6 +214,54 @@ function formatTime(value) {
   if (typeof value !== 'string' || !value) return '시각 정보 없음';
   const date = new Date(value);
   return Number.isNaN(date.getTime()) ? value : date.toLocaleString('ko-KR');
+}
+
+function renderPcStatus() {
+  const slot = $('pc-status');
+  const resource = state.pcStatus;
+  if (resource.status === 'loading') {
+    setChildren(slot, stateBox('loading', '이 장치의 PC 상태를 불러오는 중입니다.'));
+    return;
+  }
+  if (resource.status === 'error') {
+    setChildren(slot, stateBox('error', `PC 상태 확인 불가: ${resource.message}`));
+    return;
+  }
+  const rows = [
+    ['CPU 사용률', resource.data.cpu, item => `${item.value}%`],
+    ['메모리 사용량', resource.data.memory, item => `${item.value} GiB / 전체 ${item.total} GiB`],
+    ['디스크 남은 공간', resource.data.disk, item => `${item.value} GiB / 전체 ${item.total} GiB · 대상 ${item.volume}`],
+  ];
+  const pairs = [];
+  for (const [label, item, valueText] of rows) {
+    pairs.push(el('dt', {text: label}));
+    pairs.push(el('dd', {text: item.status === 'ok'
+      ? `${valueText(item)} · 채집 시각 ${formatTime(item.measuredAt)}`
+      : `확인 불가: ${item.reason} · 확인 시각 ${formatTime(item.measuredAt)}`}));
+  }
+  setChildren(slot, el('dl', {className: 'kv'}, pairs));
+}
+
+function validPcItem(item, kind) {
+  if (!isRecord(item) || !isTime(item.measuredAt)) return false;
+  if (item.status === 'unavailable') return typeof item.reason === 'string' && item.reason.length <= 200;
+  if (item.status !== 'ok' || !Number.isFinite(item.value) || item.value < 0) return false;
+  if (kind === 'cpu') return item.unit === '%' && item.value <= 100;
+  if (item.unit !== 'GiB' || !Number.isFinite(item.total) || item.total < item.value) return false;
+  return kind !== 'disk' || (typeof item.volume === 'string' && item.volume.length <= 260);
+}
+
+async function loadPcStatus(gen, signal) {
+  const result = await request('/api/pc-status', {signal});
+  if (gen !== generation) return;
+  const data = result.data;
+  state.pcStatus = result.ok && isRecord(data) && data.source === 'local-app-server'
+    && validPcItem(data.cpu, 'cpu') && validPcItem(data.memory, 'memory') && validPcItem(data.disk, 'disk')
+    ? {status: 'ok', data}
+    : {status: 'error', message: result.ok
+      ? '서버 응답 형식을 확인할 수 없습니다.'
+      : result.error?.message || '로컬 앱 서버에 연결할 수 없습니다.'};
+  renderPcStatus();
 }
 
 function stateLabel(kind, value) {
@@ -1310,6 +1359,8 @@ async function loadAll() {
   refresh.disabled = true;
   refresh.textContent = '불러오는 중…';
   state.checkedAt = null;
+  state.pcStatus = { status: 'loading' };
+  renderPcStatus();
   for (const key of Object.keys(PATHS)) {
     state[key] = { status: 'loading' };
     trackError(key, state[key]);
@@ -1318,7 +1369,8 @@ async function loadAll() {
   renderMode();
 
   try {
-    await Promise.all(Object.keys(PATHS).map((key) => loadResource(key, gen, controller.signal)));
+    await Promise.all([...Object.keys(PATHS).map((key) => loadResource(key, gen, controller.signal)),
+      loadPcStatus(gen, controller.signal)]);
   } finally {
     if (gen === generation) {
       refreshController = null;
